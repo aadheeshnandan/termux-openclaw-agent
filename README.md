@@ -9,7 +9,6 @@ A lightweight Telegram bot server for Android/Termux setup that can:
 - all with a lot better accuracy than traditional llm interaction
 - a lot more efficient than directly interacting with these tools or apis
 
-The vibe is practical + personal (nanba/thambi style replies for hardcoded bot messages).
 
 ## Info
 
