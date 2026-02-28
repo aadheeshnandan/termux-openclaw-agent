@@ -110,14 +110,14 @@ def rate_limit_ok(update: Update) -> Tuple[bool, str]:
     now = time.time()
 
     if now - LAST_HIT_TS[uid] < COOLDOWN_SECONDS:
-        return False, "⏳ Cooldown — try again in a second."
+        return False, "⏳ Cooldown thambi — try again in a second."
 
     dq = HITS_HOURLY[uid]
     one_hour_ago = now - 3600
     while dq and dq[0] < one_hour_ago:
         dq.popleft()
     if len(dq) >= HOURLY_LIMIT:
-        return False, "🚦 Hourly limit reached. Try later."
+        return False, "🚦 Hourly limit reached nanba. Try later."
 
     LAST_HIT_TS[uid] = now
     dq.append(now)
@@ -127,6 +127,9 @@ def tg_trim(s: str) -> str:
     if len(s) > TG_MAX:
         return s[:TG_MAX] + "\n\n[truncated]"
     return s
+
+def buddy(msg: str) -> str:
+    return f"{msg}, all good nanba?"
 
 def haversine_m(lat1, lon1, lat2, lon2) -> float:
     R = 6371000.0
@@ -228,7 +231,7 @@ TOOLS: Dict[str, Tool] = {}
 
 def tool_allowed(t: Tool) -> Tuple[bool, str]:
     if SAFE_MODE and t.is_external:
-        return False, "🛡️ Safe mode is ON. External tools are disabled."
+        return False, "🛡️ Safe mode is ON. External tools are disabled"
     for k in t.needs_env:
         if not os.environ.get(k, ""):
             return False, f"🔑 Missing env: {k}"
@@ -825,13 +828,13 @@ TOOLS.update({
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
-    await update.message.reply_text(
+    await update.message.reply_text(buddy(
         "✅ Tablet agent online.\n\n"
         "Core: /help /status /log /safe on|off /clear /whoami\n"
         "Hands: /wifi /battery /ttc /ttcgo /gh /soccer /stock /weather\n"
         "Ops: /ps /tail /restart <PIN>\n"
         "Or just send a message to chat.\n"
-    )
+    ))
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
@@ -852,19 +855,19 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ext = "external" if t.is_external else "local"
         req = f" (needs {', '.join(t.needs_env)})" if t.needs_env else ""
         lines.append(f"/{t.name} — {t.help} [{ext}]{req}")
-    await update.message.reply_text("\n".join(lines))
+    await update.message.reply_text(buddy("\n".join(lines)))
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
     u = update.effective_user
-    await update.message.reply_text(f"Your user_id: {u.id if u else 'unknown'}")
+    await update.message.reply_text(buddy(f"Your user_id: {u.id if u else 'unknown'}"))
 
 async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
     HISTORY.clear()
-    await update.message.reply_text("🧹 Cleared conversation memory (RAM).")
+    await update.message.reply_text(buddy("🧹 Cleared conversation memory (RAM)."))
 
 async def safe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global SAFE_MODE
@@ -872,7 +875,7 @@ async def safe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     ok, msg = rate_limit_ok(update)
     if not ok:
-        await update.message.reply_text(msg)
+        await update.message.reply_text(buddy(msg))
         return
 
     arg = " ".join(context.args).strip().lower()
@@ -881,10 +884,10 @@ async def safe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif arg in ("off", "0", "false", "no"):
         SAFE_MODE = False
     else:
-        await update.message.reply_text(f"Safe mode is currently: {'ON' if SAFE_MODE else 'OFF'}\nUsage: /safe on|off")
+        await update.message.reply_text(buddy(f"Safe mode is currently: {'ON' if SAFE_MODE else 'OFF'}\nUsage: /safe on|off"))
         return
     log(f"SAFE_MODE set to {SAFE_MODE}")
-    await update.message.reply_text(f"🛡️ Safe mode is now: {'ON' if SAFE_MODE else 'OFF'}")
+    await update.message.reply_text(buddy(f"🛡️ Safe mode is now: {'ON' if SAFE_MODE else 'OFF'}"))
 
 async def log_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
@@ -897,16 +900,16 @@ async def log_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             n = 20
     items = list(LOG_RING)[:n]
     if not items:
-        await update.message.reply_text("No logs yet.")
+        await update.message.reply_text(buddy("No logs yet."))
         return
-    await update.message.reply_text(tg_trim("\n".join(items)))
+    await update.message.reply_text(buddy(tg_trim("\n".join(items))))
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
     ok, msg = rate_limit_ok(update)
     if not ok:
-        await update.message.reply_text(msg)
+        await update.message.reply_text(buddy(msg))
         return
 
     uptime = int(time.time() - START_TIME)
@@ -936,7 +939,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         b = batt["battery"]
         batt_line = f"{b.get('percentage')}% | {b.get('status')} | {b.get('temperature')}°C"
 
-    await update.message.reply_text(
+    await update.message.reply_text(buddy(
         "🟢 OK\n"
         f"Uptime: {uptime}s\n"
         f"Device: {platform.platform()}\n"
@@ -946,24 +949,24 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Gemini model: {GEMINI_MODEL}\n"
         f"OpenAI fallback: {'enabled' if OPENAI_API_KEY else 'disabled'}\n"
         f"Log: {LOG_PATH}"
-    )
+    ))
 
 async def tool_command(update: Update, context: ContextTypes.DEFAULT_TYPE, tool_name: str):
     if not is_allowed(update):
         return
     ok, msg = rate_limit_ok(update)
     if not ok:
-        await update.message.reply_text(msg)
+        await update.message.reply_text(buddy(msg))
         return
 
     tool = TOOLS.get(tool_name)
     if not tool:
-        await update.message.reply_text("Unknown tool.")
+        await update.message.reply_text(buddy("Unknown tool."))
         return
 
     allowed, why = tool_allowed(tool)
     if not allowed:
-        await update.message.reply_text(why)
+        await update.message.reply_text(buddy(why))
         return
 
     # process-control commands (restart) are extra sensitive: require safe mode OFF (already in tool_restart)
@@ -983,15 +986,15 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     ok, msg = rate_limit_ok(update)
     if not ok:
-        await update.message.reply_text(msg)
+        await update.message.reply_text(buddy(msg))
         return
 
     user_q = " ".join(context.args).strip()
     if not user_q:
-        await update.message.reply_text("Usage: /ask <question>")
+        await update.message.reply_text(buddy("Usage: /ask <question>"))
         return
 
-    await update.message.reply_text("…thinking…")
+    await update.message.reply_text(buddy("…thinking…"))
 
     plan = plan_one_tool(user_q)
     if plan.get("mode") == "final":
@@ -1002,12 +1005,12 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     targs = (plan.get("args") or "").strip()
     tool = TOOLS.get(tname)
     if not tool:
-        await update.message.reply_text("Planner selected an unknown tool. Try rephrasing.")
+        await update.message.reply_text(buddy("Planner selected an unknown tool. Try rephrasing."))
         return
 
     allowed, why = tool_allowed(tool)
     if not allowed:
-        await update.message.reply_text(why)
+        await update.message.reply_text(buddy(why))
         return
 
     log(f"ask->tool:{tname} args='{targs}' q='{user_q[:160]}'")
@@ -1015,7 +1018,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result = tool.handler(targs)
     except Exception as e:
         log(f"ask tool:{tname} ERROR {e}")
-        await update.message.reply_text(f"Tool failed: {e}")
+        await update.message.reply_text(buddy(f"Tool failed: {e}"))
         return
 
     summary = summarize_with_llm(user_q, tname, result)
@@ -1026,14 +1029,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     ok, msg = rate_limit_ok(update)
     if not ok:
-        await update.message.reply_text(msg)
+        await update.message.reply_text(buddy(msg))
         return
 
     prompt = (update.message.text or "").strip()
     if not prompt:
         return
 
-    await update.message.reply_text("…thinking…")
+    await update.message.reply_text(buddy("…thinking…"))
     reply = llm(prompt)
 
     if not reply.startswith("❌"):
